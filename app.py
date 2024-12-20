@@ -6,6 +6,7 @@ import re
 import logging
 import tempfile
 import shutil
+from threading import Timer
 from werkzeug.utils import secure_filename
 
 # Initialize Flask app
@@ -170,6 +171,14 @@ def cleanup_temp_files():
             del temp_files[file_id]
         except Exception as e:
             logger.error(f"Cleanup error: {str(e)}")
+
+# Schedule cleanup every hour
+def schedule_cleanup():
+    cleanup_temp_files()
+    Timer(3600, schedule_cleanup).start()
+
+# Start cleanup scheduler
+schedule_cleanup()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
