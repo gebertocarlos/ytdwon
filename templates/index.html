@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube to MP3 Downloader</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d3436 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2.5rem;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 480px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .logo {
+            width: 64px;
+            height: 64px;
+            background: #ff0000;
+            border-radius: 12px;
+            margin: 0 auto 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo svg {
+            width: 36px;
+            height: 36px;
+            fill: white;
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            color: #1a1a1a;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 1rem 1rem 1rem 3rem;
+            font-size: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+        }
+
+        .progress-container {
+            margin-bottom: 1.5rem;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #4f46e5;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+
+        button {
+            width: 100%;
+            padding: 1rem;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: #4338ca;
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .message {
+            margin-top: 1rem;
+            text-align: center;
+            font-size: 0.875rem;
+        }
+
+        .message.error {
+            color: #ef4444;
+        }
+
+        .message.success {
+            color: #10b981;
+        }
+
+        .message a {
+            color: #4f46e5;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .message a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 1.5rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/>
+            </svg>
+        </div>
+        <h1>Convert YouTube to MP3</h1>
+        <div class="input-group">
+            <span class="input-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7m5 5l4-4m-4 4h4v-4"/>
+                </svg>
+            </span>
+            <input type="text" id="youtubeUrl" placeholder="Paste YouTube URL here" />
+        </div>
+        
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text">
+                <span id="progressStatus">Processing...</span>
+                <span id="progressPercentage">0%</span>
+            </div>
+        </div>
+
+        <button onclick="downloadMp3()" id="convertButton">Convert to MP3</button>
+        <div class="message" id="message"></div>
+    </div>
+
+    <script>
+        async function downloadMp3() {
+            const url = document.getElementById('youtubeUrl').value;
+            const messageDiv = document.getElementById('message');
+            const progressContainer = document.getElementById('progressContainer');
+            const progressFill = document.getElementById('progressFill');
+            const progressStatus = document.getElementById('progressStatus');
+            const progressPercentage = document.getElementById('progressPercentage');
+            const convertButton = document.getElementById('convertButton');
+
+            if (!url) {
+                showMessage('Please enter a valid YouTube URL.', 'error');
+                return;
+            }
+
+            // Reset and show progress
+            progressContainer.style.display = 'block';
+            progressFill.style.width = '0%';
+            convertButton.disabled = true;
+            showMessage('', '');
+
+            try {
+                const formData = new FormData();
+                formData.append('url', url);
+
+                // Simulate progress updates (in real implementation, this would come from server)
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    if (progress < 90) {
+                        progress += Math.random() * 15;
+                        progress = Math.min(progress, 90);
+                        updateProgress(progress);
+                    }
+                }, 500);
+
+                const response = await fetch('/convert', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                clearInterval(progressInterval);
+                const result = await response.json();
+
+                if (result.success) {
+                    updateProgress(100);
+                    progressStatus.textContent = 'Conversion Complete!';
+                    showMessage(`<a href="${result.mp3Link}" target="_blank">Download MP3</a>`, 'success');
+                } else {
+                    showMessage(`Error: ${result.error}`, 'error');
+                    progressContainer.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('An error occurred while processing your request.', 'error');
+                progressContainer.style.display = 'none';
+            }
+
+            convertButton.disabled = false;
+        }
+
+        function updateProgress(percent) {
+            const progressFill = document.getElementById('progressFill');
+            const progressPercentage = document.getElementById('progressPercentage');
+            
+            progressFill.style.width = `${percent}%`;
+            progressPercentage.textContent = `${Math.round(percent)}%`;
+        }
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = text;
+            messageDiv.className = 'message ' + type;
+        }
+    </script>
+</body>
+</html>
