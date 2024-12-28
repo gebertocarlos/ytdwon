@@ -28,37 +28,47 @@ def convert():
 
         logging.info(f"Received YouTube URL: {youtube_url}")
 
-        # Use yt-dlp to extract the video title
-        result = subprocess.run(
-            ["yt-dlp", "--get-title", youtube_url],
-            capture_output=True, text=True, check=True
-        )
-        video_title = result.stdout.strip()
-        logging.info(f"Extracted video title: {video_title}")
-
-        # Sanitize the video title to remove special characters
-        sanitized_title = re.sub(r'[\\/*?:"<>|]', "", video_title)
-
         # Create a temporary directory to store the downloaded file
         temp_dir = tempfile.mkdtemp()
 
         # Define the full path for the output file in the temporary directory
-        output_file = os.path.join(temp_dir, f"{sanitized_title}.mp3")
+        output_file = os.path.join(temp_dir, "%(title)s.%(ext)s")
 
-        # Use yt-dlp to download the audio to the temp directory
-        subprocess.run(
-            ["yt-dlp", "-x", "--audio-format", "mp3", "-o", output_file, youtube_url],
-            check=True
-        )
-        logging.info(f"Audio downloaded successfully to: {output_file}")
+        # Configure yt-dlp options
+        yt_dlp_opts = [
+            "yt-dlp",
+            "-x",  # Extract audio
+            "--audio-format", "mp3",  # Convert to MP3
+            "--no-check-certificates",  # Skip HTTPS certificate validation
+            "--no-cache-dir",  # Disable cache
+            "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "--add-header", "Accept-Language:en-US,en;q=0.9",
+            "--geo-bypass",  # Bypass geo-restrictions
+            "-o", output_file,  # Output template
+            youtube_url  # URL to download
+        ]
 
-        # Construct the download link for the client
-        download_url = f"http://127.0.0.1:5000/download/{sanitized_title}.mp3?temp_dir={temp_dir}"
+        # Run yt-dlp command
+        subprocess.run(yt_dlp_opts, check=True)
+
+        # Find the downloaded file
+        downloaded_files = os.listdir(temp_dir)
+        if not downloaded_files:
+            raise Exception("No files were downloaded")
+
+        mp3_file = os.path.join(temp_dir, downloaded_files[0])
+        logging.info(f"Audio downloaded successfully to: {mp3_file}")
+
+        # Get the filename without the temp directory path
+        filename = os.path.basename(mp3_file)
+
+        # Construct the download link
+        download_url = f"/download/{filename}?temp_dir={temp_dir}"
 
         return jsonify({"success": True, "mp3Link": download_url})
 
     except subprocess.CalledProcessError as e:
-        logging.error(f"Subprocess error: {e.stderr}")
+        logging.error(f"yt-dlp error: {e.stderr}")
         return jsonify({"success": False, "error": f"yt-dlp error: {e.stderr}"}), 500
 
     except Exception as e:
